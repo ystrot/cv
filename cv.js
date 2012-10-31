@@ -1,5 +1,7 @@
 var timeline;
+var skills;
 var now;
+var startTime;
 
 function init() {
   var date = new Date();
@@ -12,6 +14,9 @@ function init() {
 
   timeline.add(new Event("Xored", "red", "07.06 - 04.12"));
   timeline.add(new Event("Speaktoit", "red", "06.12 - "));
+
+  skills = new Skills();
+  startTime = new Date().getTime();
 }
 
 function sync() {
@@ -24,6 +29,18 @@ function sync() {
   timeline.fill(w - 10);
 }
 
+function update() {
+  var curTime = new Date().getTime();
+  var delta = new Date().getTime() - startTime;
+  if (delta > 15000) {
+    return;
+  }
+  var v1 = delta + 1000;
+  var v2 = delta / 2 + 100;
+  skills.fillValues(v1, v2, "purple", "orange");
+  setTimeout(update, 10);
+}
+
 function Event(name, color, schedule) {
   this.name = name;
   this.color = color;
@@ -32,6 +49,10 @@ function Event(name, color, schedule) {
 
 Event.prototype.start = function() {
   return this.times[0].start;
+}
+
+Event.prototype.end = function() {
+  return this.times[this.times.length - 1].end;
 }
 
 function eventParseSchedule(text) {
@@ -73,6 +94,17 @@ function Time(str) {
       this.day = 15;
     }
   }
+}
+
+Time.prototype.isLess = function(time) {
+  var diff = this.year - time.year;
+  if (diff == 0) {
+    diff = this.month - time.month;
+    if (diff == 0) {
+      diff = this.day - time.day;
+    }
+  }
+  return diff < 0;
 }
 
 function fixYear(year) {
@@ -118,9 +150,24 @@ Timeline.prototype.drawYears = function() {
 }
 
 Timeline.prototype.drawEvents = function() {
-  var start = 30;
+  var limits = [];
+  var maxLimit = 0;
   for(var i = 0; i < this.events.length; i++) {
-    this.drawEvent(this.events[i], start + i * 20);
+    var event = this.events[i];
+    var curLimit = -1;
+    for(var j = 0; j < maxLimit; j++) {
+      if (limits[j].isLess(event.start())) {
+        curLimit = j;
+        limits[j] = event.end();
+        break;
+      }
+    }
+    if (curLimit < 0) {
+      curLimit = maxLimit;
+      maxLimit++;
+      limits.push(event.end());
+    }
+    this.drawEvent(event, 30 + curLimit * 20);
   }
 }
 
@@ -180,4 +227,33 @@ Timeline.prototype.fillCircle = function(cx, cy, r, color) {
 Timeline.prototype.timeToPos = function(time) {
   var shift = (time.year - this.initYear + (time.month - 1) / 12 + (time.day - 1) / 365) * this.yearSize;
   return Math.round(shift) + 5;
+}
+
+function Skills() {
+  this.g = document.getElementById("timeline").getContext("2d");
+  this.x = 300;
+  this.y = 300;
+}
+
+Skills.prototype.fillValues = function(v1, v2, color1, color2) {
+  var v12 = v1 + v2;
+  var r = Math.sqrt(v12 / Math.PI);
+  var factor = 2 * Math.PI / v12;
+  var topAngle = v1 * factor;
+  var botAngle = v2 * factor;
+  this.drawSector(this.x, this.y, r, topAngle, true, color1);
+  this.drawSector(this.x, this.y, r, botAngle, false, color2);
+}
+
+Skills.prototype.drawSector = function(cx, cy, r, angle, top, color) {
+  this.g.fillStyle = color;
+  this.g.beginPath();
+  this.g.moveTo(cx, cy);
+  if (top) {
+    this.g.arc(cx, cy, r, (3 * Math.PI - angle) / 2, (3 * Math.PI + angle) / 2);
+  } else {
+    this.g.arc(cx, cy, r, (Math.PI - angle) / 2, (Math.PI + angle) / 2);
+  }
+  this.g.closePath();
+  this.g.fill(); // or context.fill()
 }
