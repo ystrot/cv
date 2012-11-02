@@ -27,6 +27,18 @@ function sync() {
   $("#timeline").attr("height", (h - 100) + "px");
 
   timeline.fill(w - 10);
+  drawLogo("img/college.png", 20, 40);
+  drawLogo("img/nsu.png", 50, 40);
+  drawLogo("img/swsoft.png", 210, 40);
+  drawLogo("img/parallels.png", 350, 70);
+  drawLogo("img/xored.png", 600, 40);
+  drawLogo("img/speaktoit.png", 800, 40);
+  drawLogo("img/cisco.png", 1000, 55);
+  drawLogo("img/bt.png", 1130, 55);
+  drawLogo("img/instantiations.png", 1260, 70);
+  drawLogo("img/google.png", 1400, 70);
+  drawLogo("img/keytec.png", 1520, 70);
+  drawLogo("img/farata.png", 1700, 70);
 }
 
 function update() {
@@ -39,6 +51,15 @@ function update() {
   var v2 = delta / 2 + 100;
   skills.fillValues(v1, v2, "purple", "orange");
   setTimeout(update, 10);
+}
+
+function drawLogo(src, x, y) {
+  var image = new Image();
+  image.onload = function() {
+    var g = document.getElementById("timeline").getContext("2d");
+    g.drawImage(image, x, y);
+  };
+  image.src = src;
 }
 
 function Event(name, color, schedule) {
