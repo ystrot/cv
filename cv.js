@@ -21,7 +21,7 @@ function init() {
 
 function sync() {
   var w = $(window).width();
-  var h = $(window).height();
+  var h = $(document).height();
 
   $("#timeline").attr("width", (w - 2) + "px");
   $("#timeline").attr("height", (h - 100) + "px");
