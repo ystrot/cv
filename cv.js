@@ -12,6 +12,7 @@ function init() {
   timeline.add(new Event("IT College", "green", "10.00 - 01.01, 03.01 - 06.01"));
   timeline.add(new Event("University", "green", "09.03 - 06.09"));
 
+  timeline.add(new Event("SWSoft", "red", "06.05 - 10.05"));
   timeline.add(new Event("Xored", "red", "07.06 - 04.12"));
   timeline.add(new Event("Speaktoit", "red", "06.12 - "));
 
@@ -152,6 +153,10 @@ Timeline.prototype.add = function(e) {
   this.events.push(e);
 }
 
+Timeline.prototype.start = function(e) {
+  return this.events[0].start();
+}
+
 Timeline.prototype.fill = function(width) {
   this.width = width;
   this.g.font = "12px sans-serif";
@@ -161,12 +166,23 @@ Timeline.prototype.fill = function(width) {
 }
 
 Timeline.prototype.drawYears = function() {
-  this.initYear = this.events[0].start().year;
+  var initYear = this.start().year;
   var thisYear = now.year;
-  this.yearSize = this.width / (thisYear - this.initYear + 1);
+  var yearCount = thisYear - initYear + 1;
 
-  for(var i = this.initYear; i <= thisYear; i++) {
-    this.drawYear(i, 5 + (i - this.initYear) * this.yearSize, this.yearSize);
+  if (!this.yearsRatio) {
+    this.yearsRatio = [];
+    for(var i = 0; i < yearCount; i++) {
+      this.yearsRatio.push(i / yearCount);
+    }
+    this.yearsRatio.push(1);
+  }
+
+  for(var i = initYear; i <= thisYear; i++) {
+    var index = i - initYear;
+    var shift = this.width * this.yearsRatio[index];
+    var size = this.width * this.yearsRatio[index + 1] - shift;
+    this.drawYear(i, 5 + shift, size);
   }
 }
 
@@ -246,8 +262,12 @@ Timeline.prototype.fillCircle = function(cx, cy, r, color) {
 }
 
 Timeline.prototype.timeToPos = function(time) {
-  var shift = (time.year - this.initYear + (time.month - 1) / 12 + (time.day - 1) / 365) * this.yearSize;
-  return Math.round(shift) + 5;
+  var yearIndex = time.year - this.start().year;
+  var shift = this.yearsRatio[yearIndex];
+  var delta = (this.yearsRatio[yearIndex + 1] - shift) / 12;
+  shift += (time.month - 1) * delta;
+  shift += (time.day - 1) * delta / 31;
+  return Math.round(shift * this.width) + 5;
 }
 
 function Skills() {
