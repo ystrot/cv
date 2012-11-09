@@ -8,13 +8,13 @@ function init() {
   now = new Time(date.getDate()  + "." + (date.getMonth() + 1) + "." + date.getFullYear());
 
   timeline = new Timeline();
-  timeline.add(new Event("School", "green", "01.97 - 01.06.03"));
-  timeline.add(new Event("IT College", "green", "10.00 - 01.01, 03.01 - 06.01"));
-  timeline.add(new Event("University", "green", "09.03 - 06.09"));
+  timeline.add(new Event("School", "green", "01.99 - 01.06.03"));
+  timeline.add(new Event("IT College", "green", "10.00 - 01.01, 03.01 - 06.01", "img/college.png"));
+  timeline.add(new Event("University", "green", "09.03 - 06.09", "img/nsu.png"));
 
-  timeline.add(new Event("SWSoft", "red", "06.05 - 10.05"));
-  timeline.add(new Event("Xored", "red", "07.06 - 04.12"));
-  timeline.add(new Event("Speaktoit", "red", "06.12 - "));
+  timeline.add(new Event("SWSoft", "red", "06.05 - 10.05", "img/swsoft.png -> img/parallels.png"));
+  timeline.add(new Event("Xored", "red", "07.06 - 04.12", "img/xored.png"));
+  timeline.add(new Event("Speaktoit", "red", "06.12 - ", "img/speaktoit.png"));
 
   skills = new Skills();
   startTime = new Date().getTime();
@@ -24,22 +24,17 @@ function sync() {
   var w = $(window).width();
   var h = $(document).height();
 
-  $("#timeline").attr("width", (w - 2) + "px");
+  $("#timeline").attr("width", w + "px");
   $("#timeline").attr("height", (h - 100) + "px");
 
-  timeline.fill(w - 10);
-  drawLogo("img/college.png", 20, 40);
-  drawLogo("img/nsu.png", 50, 40);
-  drawLogo("img/swsoft.png", 210, 40);
-  drawLogo("img/parallels.png", 350, 70);
-  drawLogo("img/xored.png", 600, 40);
-  drawLogo("img/speaktoit.png", 800, 40);
-  drawLogo("img/cisco.png", 1000, 55);
-  drawLogo("img/bt.png", 1130, 55);
-  drawLogo("img/instantiations.png", 1260, 70);
-  drawLogo("img/google.png", 1400, 70);
-  drawLogo("img/keytec.png", 1520, 70);
-  drawLogo("img/farata.png", 1700, 70);
+  timeline.fill(w);
+
+  drawLogo("img/cisco.png", 800, 55, 75);
+  drawLogo("img/bt.png", 930, 55, 75);
+  drawLogo("img/instantiations.png", 1060, 70, 75);
+  drawLogo("img/google.png", 1200, 70, 75);
+  drawLogo("img/keytec.png", 1320, 70);
+  drawLogo("img/farata.png", 1500, 70);
 }
 
 function update() {
@@ -58,15 +53,43 @@ function drawLogo(src, x, y) {
   var image = new Image();
   image.onload = function() {
     var g = document.getElementById("timeline").getContext("2d");
-    g.drawImage(image, x, y);
+    var w = image.width;
+    var h = image.height;
+    if (w <= 75 && h <= 35) {
+      g.drawImage(image, x, y);
+    } else {
+      var wr = w / 75;
+      var hr = h / 35;
+      var r = Math.max(wr, hr);
+      g.drawImage(image, 0, 0, w, h, x, y, w / r, h / r);
+    }
   };
   image.src = src;
 }
 
-function Event(name, color, schedule) {
+function Event(name, color, schedule, logo) {
+  this.timeline = null;
   this.name = name;
   this.color = color;
   this.times = eventParseSchedule(schedule);
+  if (logo !== undefined) {
+    var e = this;
+    var refresh = function() { if (e.timeline != null) e.timeline.fill(); }
+    var logoSrc = logo;
+    if (logoSrc.indexOf("->") > 0) {
+      var parts = logoSrc.split("->");
+      logoSrc = $.trim(parts[0]);
+
+      this.logo2 = new Image();
+      this.logo2.onload = refresh;
+      this.logo2.src = $.trim(parts[1]);
+    }
+    this.logo = new Image();
+    this.logo.onload = refresh;
+    this.logo.src = logoSrc;
+  } else {
+    this.logo = null;
+  }
 }
 
 Event.prototype.start = function() {
@@ -144,13 +167,13 @@ function parseTimeInt(str) {
 
 function Timeline() {
   this.g = document.getElementById("timeline").getContext("2d");
-
   this.events = [];
   this.width = 0;
 }
 
 Timeline.prototype.add = function(e) {
   this.events.push(e);
+  e.timeline = this;
 }
 
 Timeline.prototype.start = function(e) {
@@ -158,7 +181,7 @@ Timeline.prototype.start = function(e) {
 }
 
 Timeline.prototype.fill = function(width) {
-  this.width = width;
+  if (width !== undefined) this.width = width;
   this.g.font = "12px sans-serif";
   this.g.textBaseline = "top";
   this.drawYears();
@@ -172,8 +195,13 @@ Timeline.prototype.drawYears = function() {
 
   if (!this.yearsRatio) {
     this.yearsRatio = [];
-    for(var i = 0; i < yearCount; i++) {
-      this.yearsRatio.push(i / yearCount);
+    var middle = yearCount / 2;
+    var part = 0.25;
+    for(var i = 0; i < middle; i++) {
+      this.yearsRatio.push(part * i / middle);
+    }
+    for(var i = middle; i < yearCount; i++) {
+      this.yearsRatio.push(part + (1 - part) * (i - middle) / (yearCount - middle));
     }
     this.yearsRatio.push(1);
   }
@@ -182,7 +210,7 @@ Timeline.prototype.drawYears = function() {
     var index = i - initYear;
     var shift = this.width * this.yearsRatio[index];
     var size = this.width * this.yearsRatio[index + 1] - shift;
-    this.drawYear(i, 5 + shift, size);
+    this.drawYear(i, shift, size);
   }
 }
 
@@ -250,6 +278,40 @@ Timeline.prototype.drawEvent = function(event, y) {
     this.fillCircle(start, y, pin, event.color);
     this.fillCircle(end, y, pin, event.color);
   }
+
+  if (event.logo != null) {
+    var start = this.timeToPos(event.start());
+    this.g.beginPath();
+    this.g.moveTo(start, y);
+    this.g.lineTo(start - 20, y + 20);
+    this.g.lineTo(start - 5, y + 20);
+    this.g.strokeStyle = event.color;
+    this.g.stroke();
+
+    var w = event.logo.width;
+    var h = event.logo.height;
+    var r = 1;
+    if (w > 75 || h > 35) {
+      r = Math.max(w / 75, h / 35);
+    }
+    var ex = start;
+    var ey = y + 20 - h / (2 * r);
+
+    if (event.logo2 != null) { this.g.globalAlpha = 0.3; }
+    this.g.drawImage(event.logo, 0, 0, w, h, ex, ey, w / r, h / r);
+    if (event.logo2 != null)
+    {
+      this.g.globalAlpha = 1;
+
+      w = event.logo2.width;
+      h = event.logo2.height;
+      r = 1;
+      if (w > 75 || h > 35) {
+        r = Math.max(w / 75, h / 35);
+      }
+      this.g.drawImage(event.logo2, 0, 0, w, h, ex + 7, ey + 7, w / r, h / r);
+    }
+  }
 }
 
 Timeline.prototype.fillCircle = function(cx, cy, r, color) {
@@ -267,7 +329,7 @@ Timeline.prototype.timeToPos = function(time) {
   var delta = (this.yearsRatio[yearIndex + 1] - shift) / 12;
   shift += (time.month - 1) * delta;
   shift += (time.day - 1) * delta / 31;
-  return Math.round(shift * this.width) + 5;
+  return Math.round(shift * this.width);
 }
 
 function Skills() {
